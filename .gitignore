@@ -1,3 +1,5 @@
+cfg.yml
+
 *.gem
 *.rbc
 /.config

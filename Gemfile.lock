@@ -1,0 +1,10 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    proj4rb (0.4.3)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  proj4rb
