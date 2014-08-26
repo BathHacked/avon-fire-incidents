@@ -5,6 +5,10 @@ require 'date'
 require 'proj4' # So we can convert OS Grid eastings/northings (osgb36)  to latlong (wgs84)
 require 'logger'
 require 'json'
+require 'soda/client'
+
+require_relative 'lib/logging'
+require_relative 'lib/soda_bread'
 
 # List of fields that should be stripped from the 
 # incident data before submitting to socrata
@@ -31,7 +35,7 @@ unless File.exist?('cfg.yml')
 	exit 1
 end
 
-logger.info("Loading configuration from cfg.yml")
+logger.info("Loading options from cfg.yml")
 # Load up some default options
 options = YAML.load_file('cfg.yml')
 
@@ -55,6 +59,18 @@ if options[:source].nil?
 	logger.fatal "-f required - Please provide a filename to load"
 	exit 1
 end
+
+
+logger.debug("Creating SODA client... ")
+# API Client for bath hacked
+client = SODA::Client.new({
+                    	:domain => options[:datastore][:domain],
+                    	:username => options[:datastore][:username],
+                    	:password => options[:datastore][:password],
+                    	:app_token => options[:datastore][:app_token] })
+
+
+bread = SODABread.new(client, options[:datastore][:dataset], options[:batchsize])
 
 
 # Converting from Eastings to Nothings is a bit of a pain
@@ -87,9 +103,7 @@ CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |ro
 		next
 	end
 	# Temporary storage for the socrata data row we're going to push
-	socrata_data_row = {}
-
-	logger.debug(row.inspect)
+	socrata_data_row = {}	
 
     # Extrapolate a normal Date object
     timeString = "%s-%s-%sT%s" % [ row['Year'],row['Month'],row['Day'], row['Time of Call'] ]    
@@ -121,10 +135,12 @@ CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |ro
  		socrata_data_row[k.underscore] = socrata_data_row.delete(k)
  	}
 
-	logger.debug( socrata_data_row )
-	
-	#TODO: Write socrata_data_row to socrata :-)
-	# probably using some batching writer so we can throw it in this loop	
+	logger.debug( socrata_data_row )	
+	bread.write( socrata_data_row )
+
 end
+
+#Ensure we've flushed all the data out :-)
+bread.flush()
 
 logger.info("Finished Load")
