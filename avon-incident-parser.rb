@@ -56,6 +56,10 @@ if options[:source].nil?
 	exit 1
 end
 
+
+# Converting from Eastings to Nothings is a bit of a pain
+# I had to use a native library which is less than ideal, but
+# it gets the results I wanted
 def to_latlong(easting, northing)
 	# logger.debug("Converting %s,%s to LatLong" % 	[easting, northing])
 	easting = easting.to_i
