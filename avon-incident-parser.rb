@@ -24,9 +24,14 @@ class String
   end
 end
 
-logger.level = Logger::DEBUG
+logger.level = Logger::INFO
 
-logger.info("Loading configuration")
+unless File.exist?('cfg.yml') 
+	logger.fatal("cfg.yml is missing - Copy cfg.yml.sample and update accordingly")
+	exit 1
+end
+
+logger.info("Loading configuration from cfg.yml")
 # Load up some default options
 options = YAML.load_file('cfg.yml')
 
@@ -34,8 +39,15 @@ options = YAML.load_file('cfg.yml')
 OptionParser.new do |opts|
   opts.banner = "Usage: avon-incident-parser.rb [options]"
 
-  opts.on('-f', '--sourcefile Filename', 'Source File') { |v| options[:source] = v }  
+  opts.on('-f', '--sourcefile Filename', 'Source File') { |v| 
+  	unless File.exist?(v)
+  		logger.fatal("Error: File '%s' does not exist or is not readable" % v)
+  		exit 2
+  	end
+  	options[:source] = v    
+  }  
   opts.on('-r', '--rta', 'Road Traffic Incidents') { |v| options[:datagroup] = "rta" }  
+  opts.on('-v', '--verbose', 'Wildly chatty debug mode!') { logger.level = Logger::DEBUG}
 
 end.parse!
 
@@ -43,7 +55,6 @@ if options[:source].nil?
 	logger.fatal "-f required - Please provide a filename to load"
 	exit 1
 end
-
 
 def to_latlong(easting, northing)
 	# logger.debug("Converting %s,%s to LatLong" % 	[easting, northing])
@@ -64,13 +75,16 @@ end
 
 
 logger.info("Reading %s " % options[:source])
-#CSV.foreach(options[:source], headers:true, :encoding => 'windows-1251:utf-8') do |row|
+
 CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |row|
-	logger.debug("Reading row")
+	logger.debug("Reading CSV row")
 	unless row['Unitary Authority']=="BANES" 
-		logger.debug("Skipping non BANES location...")
+		logger.debug("Skipping non BANES location... who cares about Bristol anyway")
 		next
-	end	
+	end
+	# Temporary storage for the socrata data row we're going to push
+	socrata_data_row = {}
+
 	logger.debug(row.inspect)
 
     # Extrapolate a normal Date object
@@ -85,10 +99,8 @@ CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |ro
 
 	# logger.debug( "Position: %s, %s" % [position.lat, position.lon] )
 	
+
 	type_list = row['Property Type'].split(">")
-
-	socrata_data_row = {}
-
 	type_list.each.with_index{ |d,i| socrata_data_row["type_%d"% i] = d.strip}
 
 	socrata_data_row['latitude'] = position.lat
@@ -108,6 +120,7 @@ CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |ro
 	logger.debug( socrata_data_row )
 	
 	#TODO: Write socrata_data_row to socrata :-)
+	# probably using some batching writer so we can throw it in this loop	
 end
 
-logger.info("Finished CSV Loop")
+logger.info("Finished Load")
