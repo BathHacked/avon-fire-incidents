@@ -15,6 +15,7 @@ class SODABread
     end
 
     def write( hash ) 
+        @client.add_column("Testing")
         logger.debug("Adding %s" % hash.to_s)
         if @buffer.length >= @batch_size
             logger.debug("SODA Bread buffer filled(%d).. auto-flushing" % @batch_size)

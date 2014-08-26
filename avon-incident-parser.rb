@@ -7,6 +7,7 @@ require 'logger'
 require 'json'
 require 'soda/client'
 
+require_relative 'lib/soda/client-ext'
 require_relative 'lib/logging'
 require_relative 'lib/soda_bread'
 
