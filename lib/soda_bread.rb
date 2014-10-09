@@ -27,6 +27,5 @@ class SODABread
         logger.info("Writing buffer (%d records) to Socrata '%s'" % [ @buffer.length, @datastore])
     	puts @client.post(@datastore, @buffer)
     	@buffer = []
-        exit 1
     end
 end
