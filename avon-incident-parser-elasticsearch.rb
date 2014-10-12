@@ -89,10 +89,12 @@ logger.info("Reading %s " % options[:source])
 
 CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |row|
 	logger.debug("Reading CSV row")
-	unless row['Unitary Authority']=="BANES" 
-		logger.debug("Skipping non BANES location... who cares about Bristol anyway")
-		next
-	end
+	#unless row['Unitary Authority']=="BANES" 
+	#	logger.debug("Skipping non BANES location... who cares about Bristol anyway")
+	#	next
+	#end
+
+
 	# Temporary storage for the socrata data row we're going to push
 	socrata_data_row = {}	
 

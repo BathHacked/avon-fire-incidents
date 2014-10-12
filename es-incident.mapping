@@ -1,11 +1,12 @@
 {
   "_comment" : " This file is loaded as a new index using the following command: curl -XPOST localhost:9200/avonfire -d @es-incident.mapping",
   "settings": {
-    "number_of_shards": 1
+    "number_of_shards": 5
   },
   "mappings": {
     "incident": {
-      "analyzer": "keyword",
+      "index_analyzer" : "keyword",
+      "search_analyzer" : "standard",
       "properties": {
         "is_primary_fire": {
           "type": "boolean"
