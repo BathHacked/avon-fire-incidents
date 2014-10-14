@@ -1,4 +1,4 @@
-
+require 'csv'
 #The SODA Bread class provides a batching read/write layer over
 # the SODA system.
 # It currently only really supports Batch Writing, but SODABwrite 
@@ -12,9 +12,25 @@ class SODABread
         @datastore = datastore
         @batch_size = batch_size
         @buffer = []
+        @csv_output = true
     end
 
-    def write( hash ) 
+    def write( hash )
+
+        if @csv_output 
+            logger.info('Creating Seed CSV')
+            column_names = hash.keys
+            s=CSV.generate do |csv|
+              csv << column_names
+
+              csv << hash.values
+              
+            end
+            File.write('dataset-seed.csv', s)
+            puts s
+            @csv_output = false
+        end
+
         logger.debug("Adding %s" % hash.to_s)
         if @buffer.length >= @batch_size
             logger.debug("SODA Bread buffer filled(%d).. auto-flushing" % @batch_size)

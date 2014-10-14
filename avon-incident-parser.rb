@@ -2,7 +2,6 @@ require 'optparse'
 require 'yaml'
 require 'csv'
 require 'date'
-require 'proj4' # So we can convert OS Grid eastings/northings (osgb36)  to latlong (wgs84)
 require 'logger'
 require 'json'
 require 'soda/client'
@@ -13,6 +12,7 @@ require_relative 'lib/soda_bread'
 # List of fields that should be stripped from the 
 # incident data before submitting to socrata
 blacklist_fields = [ 'Time of Call', 'Day', 'Month', 'Year' ]
+proj4rb_loaded=true
 logger = Logger.new($stdout).tap do |log|
   log.progname = 'avon-incident-parser'
 end
@@ -109,20 +109,34 @@ CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |ro
     timeString = "%s-%s-%sT%s" % [ row['Year'],row['Month'],row['Day'], row['Time of Call'] ]    
 	realDate = DateTime.strptime(timeString, '%Y-%B-%dT%H:%M:%S')
 
-	# The incident data provides a reduced accuracy for the easting/northing location
-	# by replacing the last three digits with asterixs (*) 
-	# Assuming the values are simply replaced out, put back a "500" so that the
-	# returned position is the middle of the possible coordinate error range
-	position = to_latlong(row['X Coordinate'].sub("***","500"), row['Y Coordinate'].sub("***","500"))
 
-	# logger.debug( "Position: %s, %s" % [position.lat, position.lon] )
+	#I dont like this; the loading should be in the to_latlong function really...
+    if proj4rb_loaded
+    begin
+    	# As its really hard to install this project due to its dependencies
+    	# its an optional dependency, with warning indicating missing coordinate 
+    	# convertions.
+    	# It might be viable to have a backup mechanism?
+    	require 'proj4rb'
+		# The incident data provides a reduced accuracy for the easting/northing location
+		# by replacing the last three digits with asterixs (*) 
+		# Assuming the values are simply replaced out, put back a "500" so that the
+		# returned position is the middle of the possible coordinate error range
+		position = to_latlong(row['X Coordinate'].sub("***","500"), row['Y Coordinate'].sub("***","500"))
+
+		socrata_data_row['latitude'] = position.lat
+		socrata_data_row['longitude'] = position.lon
+		logger.debug( "Position: %s, %s" % [position.lat, position.lon] )
+	rescue LoadError
+		proj4rb_loaded=false
+		logger.warn('proj4rb missing - Unable to convert location to lat/long; bundle install proj4rb')
+	end
+	end
 	
 
 	type_list = row['Property Type'].split(">")
 	type_list.each.with_index{ |d,i| socrata_data_row["type_%d"% i] = d.strip}
 
-	socrata_data_row['latitude'] = position.lat
-	socrata_data_row['longitude'] = position.lon
 	socrata_data_row['datetime'] = realDate.to_s
 	socrata_data_row.merge!( row.to_hash )
 
