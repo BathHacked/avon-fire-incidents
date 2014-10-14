@@ -1,0 +1,126 @@
+{
+  "_comment" : " This file is loaded as a new index using the following command: curl -XPOST localhost:9200/avonfire -d @es-incident.mapping",
+  "settings": {
+    "number_of_shards": 5
+  },
+  "mappings": {
+    "incident": {
+      "index_analyzer" : "keyword",
+      "search_analyzer" : "standard",
+      "properties": {
+        "is_primary_fire": {
+          "type": "boolean"
+        },
+        "main_action_by_frs": {
+          "type": "string"
+        },
+        "ignition_source_powered": {
+          "type": "string"
+        },
+        "road_traffic_collision": {
+          "type": "boolean"
+        },
+        "ward": {
+          "type": "string"
+        },
+        "how_fire_was_discovered": {
+          "type": "string"
+        },
+        "incident_number": {
+          "type": "string"
+        },
+        "item_responsible_for_spread_of_fire": {
+          "type": "string"
+        },
+        "y_coordinate": {
+          "type": "string"
+        },
+        "special_service_type": {
+          "type": "string"
+        },
+        "cause_of_fire": {
+          "type": "string"
+        },
+        "datetime": {
+          "format": "dateOptionalTime",
+          "type": "date"
+        },
+        "no_of_injuries": {
+          "type": "integer"
+        },
+        "property_category": {
+          "type": "string"
+        },
+        "no_of_rescues": {
+          "type": "integer"
+        },
+        "main_action_by_other_than_frs": {
+          "type": "string"
+        },
+        "property_type": {
+          "type": "string"
+        },
+        "x_coordinate": {
+          "type": "string"
+        },
+        "no_of_fatalities": {
+          "type": "integer"
+        },
+        "type_3": {
+          "type": "string"
+        },
+        "type_2": {
+          "type": "string"
+        },
+        "type_1": {
+          "type": "string"
+        },
+        "type_0": {
+          "type": "string"
+        },
+        "no_of_fire_fatalities": {
+          "type": "integer"
+        },
+        "incident_category": {
+          "type": "string"
+        },
+        "is_property_derelict": {
+          "type": "boolean"
+        },
+        "victims_involved": {
+          "type": "string"
+        },
+        "item_first_damaged": {
+          "type": "string"
+        },
+        "false_alarm_reason": {
+          "type": "string"
+        },
+        "origin_of_call": {
+          "type": "string"
+        },
+        "is_fire_confined_to_chimney": {
+          "type": "boolean"
+        },
+        "unitary_authority": {
+          "type": "string"
+        },
+        "is_property_occupied_at_the_incident": {
+          "type": "boolean"
+        },
+        "were_alarm_systems_present": {
+          "type": "boolean"
+        },
+        "property_normally_occupied": {
+          "type": "string"
+        },
+        "main_cause_of_fire": {
+          "type": "string"
+        },
+        "ignition_source": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -4,10 +4,9 @@ require 'csv'
 require 'date'
 require 'logger'
 require 'json'
-require 'soda/client'
+require 'elasticsearch'
 
 require_relative 'lib/logging'
-require_relative 'lib/soda_bread'
 
 # List of fields that should be stripped from the 
 # incident data before submitting to socrata
@@ -61,17 +60,9 @@ if options[:source].nil?
 end
 
 
-logger.debug("Creating SODA client... ")
+logger.debug("Creating Elasticsearch client... ")
 # API Client for bath hacked
-client = SODA::Client.new({
-                    	:domain => options[:datastore][:domain],
-                    	:username => options[:datastore][:username],
-                    	:password => options[:datastore][:password],
-                    	:app_token => options[:datastore][:app_token] })
-
-
-bread = SODABread.new(client, options[:datastore][:dataset], options[:batchsize])
-
+client = Elasticsearch::Client.new host: 'localhost'
 
 # Converting from Eastings to Nothings is a bit of a pain
 # I had to use a native library which is less than ideal, but
@@ -98,10 +89,12 @@ logger.info("Reading %s " % options[:source])
 
 CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |row|
 	logger.debug("Reading CSV row")
-	unless row['Unitary Authority']=="BANES" 
-		logger.debug("Skipping non BANES location... who cares about Bristol anyway")
-		next
-	end
+	#unless row['Unitary Authority']=="BANES" 
+	#	logger.debug("Skipping non BANES location... who cares about Bristol anyway")
+	#	next
+	#end
+
+
 	# Temporary storage for the socrata data row we're going to push
 	socrata_data_row = {}	
 
@@ -150,11 +143,8 @@ CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |ro
  	}
 
 	logger.debug( socrata_data_row )	
-	bread.write( socrata_data_row )
+	client.index index: 'avonfire', type: 'incident', body: socrata_data_row 
 
 end
-
-#Ensure we've flushed all the data out :-)
-bread.flush()
 
 logger.info("Finished Load")
