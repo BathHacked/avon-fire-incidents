@@ -1,4 +1,4 @@
-require 'optparse'
+equire 'optparse'
 require 'yaml'
 require 'csv'
 require 'date'
@@ -9,7 +9,7 @@ require 'soda/client'
 require_relative 'lib/logging'
 require_relative 'lib/soda_bread'
 
-# List of fields that should be stripped from the 
+# List of fields that should be stripped from the
 # incident data before submitting to socrata
 blacklist_fields = [ 'Time of Call', 'Day', 'Month', 'Year' ]
 proj4rb_loaded=true
@@ -22,7 +22,7 @@ class String
     self.gsub(/::/, '/').
     gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
     gsub(/([a-z\d])([A-Z])/,'\1_\2').
-    tr("- ", "_").    
+    tr("- ", "_").
     gsub(/\W?/, "").
     downcase
   end
@@ -30,7 +30,7 @@ end
 
 logger.level = Logger::INFO
 
-unless File.exist?('cfg.yml') 
+unless File.exist?('cfg.yml')
 	logger.fatal("cfg.yml is missing - Copy cfg.yml.sample and update accordingly")
 	exit 1
 end
@@ -43,14 +43,14 @@ options = YAML.load_file('cfg.yml')
 OptionParser.new do |opts|
   opts.banner = "Usage: avon-incident-parser.rb [options]"
 
-  opts.on('-f', '--sourcefile Filename', 'Source File') { |v| 
+  opts.on('-f', '--sourcefile Filename', 'Source File') { |v|
   	unless File.exist?(v)
   		logger.fatal("Error: File '%s' does not exist or is not readable" % v)
   		exit 2
   	end
-  	options[:source] = v    
-  }  
-  opts.on('-r', '--rta', 'Road Traffic Incidents') { |v| options[:datagroup] = "rta" }  
+  	options[:source] = v
+  }
+  opts.on('-r', '--rta', 'Road Traffic Incidents') { |v| options[:datagroup] = "rta" }
   opts.on('-v', '--verbose', 'Wildly chatty debug mode!') { logger.level = Logger::DEBUG}
 
 end.parse!
@@ -98,15 +98,15 @@ logger.info("Reading %s " % options[:source])
 
 CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |row|
 	logger.debug("Reading CSV row")
-	unless row['Unitary Authority']=="BANES" 
+	unless row['Unitary Authority']=="BANES"
 		logger.debug("Skipping non BANES location... who cares about Bristol anyway")
 		next
 	end
 	# Temporary storage for the socrata data row we're going to push
-	socrata_data_row = {}	
+	socrata_data_row = {}
 
     # Extrapolate a normal Date object
-    timeString = "%s-%s-%sT%s" % [ row['Year'],row['Month'],row['Day'], row['Time of Call'] ]    
+    timeString = "%s-%s-%sT%s" % [ row['Year'],row['Month'],row['Day'], row['Time of Call'] ]
 	realDate = DateTime.strptime(timeString, '%Y-%B-%dT%H:%M:%S')
 
 
@@ -114,25 +114,24 @@ CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |ro
     if proj4rb_loaded
     begin
     	# As its really hard to install this project due to its dependencies
-    	# its an optional dependency, with warning indicating missing coordinate 
+    	# its an optional dependency, with warning indicating missing coordinate
     	# convertions.
     	# It might be viable to have a backup mechanism?
-    	require 'proj4rb'
+    	require 'proj4'
 		# The incident data provides a reduced accuracy for the easting/northing location
-		# by replacing the last three digits with asterixs (*) 
+		# by replacing the last three digits with asterixs (*)
 		# Assuming the values are simply replaced out, put back a "500" so that the
 		# returned position is the middle of the possible coordinate error range
 		position = to_latlong(row['X Coordinate'].sub("***","500"), row['Y Coordinate'].sub("***","500"))
 
-		socrata_data_row['latitude'] = position.lat
-		socrata_data_row['longitude'] = position.lon
-		logger.debug( "Position: %s, %s" % [position.lat, position.lon] )
-	rescue LoadError
+		socrata_data_row['location'] = '(%s,%s)' % [position.lat, position.lon]
+	rescue LoadError => e
 		proj4rb_loaded=false
 		logger.warn('proj4rb missing - Unable to convert location to lat/long; bundle install proj4rb')
+		logger.info('   Specific exception: %s' % e.message)
 	end
 	end
-	
+
 
 	type_list = row['Property Type'].split(">")
 	type_list.each.with_index{ |d,i| socrata_data_row["type_%d"% i] = d.strip}
@@ -142,14 +141,14 @@ CSV.foreach(options[:source], headers: true,encoding: 'iso-8859-1:UTF-8') do |ro
 
     # Remove blacklisted fields
     socrata_data_row.delete_if{ |k,v| blacklist_fields.include?(k) }
- 
+
  	#I don't like spaces or capitals
- 	socrata_data_row.keys.each{ |k| 
+ 	socrata_data_row.keys.each{ |k|
  		logger.debug("Renaming %s to %s" % [k, k.underscore])
  		socrata_data_row[k.underscore] = socrata_data_row.delete(k)
  	}
 
-	logger.debug( socrata_data_row )	
+	logger.debug( socrata_data_row )
 	bread.write( socrata_data_row )
 
 end
